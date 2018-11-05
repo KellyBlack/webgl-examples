@@ -12,7 +12,10 @@ export class AppComponent implements OnInit
     @ViewChild('openGL') private webGL : ElementRef;
     gl = null;
     programInfo;
+    buffers;
     mat4 = new Mat4();
+    squareRotation: number = 0.0;
+    then: number = 0;
 
     ngOnInit()
     {
@@ -37,7 +40,7 @@ export class AppComponent implements OnInit
 
         // Here's where we call the routine that builds all the
         // objects we'll be drawing.
-        const buffers = this.initBuffers(this.gl);
+        this.buffers = this.initBuffers(this.gl);
         */
 
           // Vertex shader program
@@ -74,7 +77,7 @@ export class AppComponent implements OnInit
         // Collect all the info needed to use the shader program.
         // Look up which attribute our shader program is using
         // for aVertexPosition and look up uniform locations.
-        const programInfo = {
+        this.programInfo = {
             program: shaderProgram,
             attribLocations: {
                 vertexPosition: this.gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
@@ -88,13 +91,25 @@ export class AppComponent implements OnInit
 
         // Here's where we call the routine that builds all the
         // objects we'll be drawing.
-        const buffers = this.initBuffers(this.gl);
+        this.buffers = this.initBuffers(this.gl);
 
 
         // Draw the scene
-        this.drawScene(this.gl, programInfo, buffers);
+        //this.drawScene(this.gl, this.programInfo, this.buffers, this.then);
+        requestAnimationFrame((arg) => this.render(arg));
 
     }
+
+    render(now)
+    {
+        // Draw the scene repeatedly
+        now *= 0.001;  // convert to seconds
+        const deltaTime = now - this.then;
+        this.then = now;
+        this.drawScene(this.gl, this.programInfo, this.buffers, deltaTime);
+        requestAnimationFrame((arg) => this.render(arg));
+    }
+
 
     //
     // initBuffers
@@ -149,7 +164,7 @@ export class AppComponent implements OnInit
     //
     // Draw the scene.
     //
-    drawScene(gl, programInfo, buffers)
+    drawScene(gl, programInfo, buffers, deltaTime)
     {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
         gl.clearDepth(1.0);                 // Clear everything
@@ -191,6 +206,13 @@ export class AppComponent implements OnInit
         this.mat4.translate(modelViewMatrix,     // destination matrix
                             modelViewMatrix,     // matrix to translate
                             [-0.0, 0.0, -6.0]);  // amount to translate
+
+        // Now rotate the view so that it looks like the plane will
+        // rotate.
+        this.mat4.rotate(modelViewMatrix,     // destination matrix
+                         modelViewMatrix,     // matrix to rotate
+                         this.squareRotation, // amount to rotate in radians
+                         [0, 0, 1]);          // axis to rotate around
 
         // Tell WebGL how to pull out the positions from the position
         // buffer into the vertexPosition attribute.
@@ -252,6 +274,9 @@ export class AppComponent implements OnInit
             const vertexCount = 4;
             gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
         }
+
+        // Update the rotation for the next draw
+        this.squareRotation += deltaTime;
     }
 
     //
